@@ -158,7 +158,7 @@ class Odnoklassniki extends AbstractService
         }
 
         $parameters = [
-            'application_key' => self::$app_public_key,
+            'application_key' => $this->credentials->getConsumerPublic(),
             'method' => $path
         ];
 
