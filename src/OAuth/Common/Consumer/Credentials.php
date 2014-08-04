@@ -23,15 +23,21 @@ class Credentials implements CredentialsInterface
     protected $callbackUrl;
 
     /**
+     * @var string
+     */
+    protected $consumerPublic;
+
+    /**
      * @param string $consumerId
      * @param string $consumerSecret
      * @param string $callbackUrl
      */
-    public function __construct($consumerId, $consumerSecret, $callbackUrl)
+    public function __construct($consumerId, $consumerSecret, $callbackUrl, $consumerPublic)
     {
         $this->consumerId = $consumerId;
         $this->consumerSecret = $consumerSecret;
         $this->callbackUrl = $callbackUrl;
+        $this->consumerPublic = $consumerPublic;
     }
 
     /**
@@ -56,5 +62,13 @@ class Credentials implements CredentialsInterface
     public function getConsumerSecret()
     {
         return $this->consumerSecret;
+    }
+
+    /**
+     * @return string
+     */
+    public function getConsumerPublic()
+    {
+        return $this->consumerPublic;
     }
 }

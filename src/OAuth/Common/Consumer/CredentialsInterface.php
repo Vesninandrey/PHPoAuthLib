@@ -21,4 +21,9 @@ interface CredentialsInterface
      * @return string
      */
     public function getConsumerSecret();
+
+    /**
+     * @return string
+     */
+    public function getConsumerPublic();
 }
