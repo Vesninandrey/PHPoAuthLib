@@ -10,18 +10,19 @@ use OAuth\Common\Storage\TokenStorageInterface;
 use OAuth\Common\Http\Uri\UriInterface;
 use OAuth\Common\Token\TokenInterface;
 use OAuth\Common\Token\Exception\ExpiredTokenException;
-use OAuth\Common\Token\Exception\MissingApplicationKeyException;
 
 class Odnoklassniki extends AbstractService
 {
-
     protected $applicationKey;
+
+    const PARAMETER_NAME_ACCESS_TOKEN = "access_token";
+    const PARAMETER_NAME_REFRESH_TOKEN = "refresh_token";
 
     public function __construct(Credentials $credentials, ClientInterface $httpClient, TokenStorageInterface $storage, $scopes = array(), UriInterface $baseApiUri = null)
     {
         parent::__construct($credentials, $httpClient, $storage, $scopes, $baseApiUri);
         if( null === $baseApiUri ) {
-            $this->baseApiUri = new Uri('http://api.odnoklassniki.ru/api/');
+            $this->baseApiUri = new Uri('http://api.odnoklassniki.ru/fb.do');
         }
     }
 
@@ -96,70 +97,77 @@ class Odnoklassniki extends AbstractService
     }
 
     /**
-     * This is a full override of parent::request because Odnoklassniki API requires different logic of api requests
-     *
-     * Sends an authenticated API request to the path provided.
-     * If the path provided is not an absolute URI, the base API Uri (must be passed into constructor) will be used.
-     *
-     * @param $path string|UriInterface
-     * @param string $method HTTP method
-     * @param array $body Request body if applicable (key/value pairs)
-     * @param array $extraHeaders Extra headers if applicable. These will override service-specific any defaults.
-     * @return string
-     * @throws ExpiredTokenException
-     * @throws MissingApplicationKeyException
-     * @throws Exception
+     * {@inheritdoc}
      */
-    public function request($path, $method = 'GET', array $body = array(), array $extraHeaders = array())
+    protected function getAuthorizationMethod()
     {
-        $uri = $this->determineRequestUriFromPath($path, $this->baseApiUri);
+        return self::AUTHORIZATION_METHOD_HEADER_OAUTH;
+    }
+
+/* Must implement public function refreshAccessToken(TokenInterface $token)
+
+    public function updateAccessTokenWithRefreshToken(){
+        $curl = curl_init($this->getAccessTokenEndpoint());
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, 'refresh_token=' . self::$refresh_token . '&grant_type=refresh_token&client_id=' . $this->credentials->getConsumerId() . '&client_secret=' . $this->credentials->getConsumerSecret());
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        $s = curl_exec($curl);
+        curl_close($curl);
+        $a = json_decode($s, true);
+        if (empty($a[self::PARAMETER_NAME_ACCESS_TOKEN])) {
+            return false;
+        } else {
+            self::$access_token = $a[self::PARAMETER_NAME_ACCESS_TOKEN];
+            return true;
+        }
+    }
+*/
+    private function calcSignature($access_token, $parameters = []){
+        if (!count($parameters) && (!self::isAssoc($parameters)))
+            return null;
+
+        if (!ksort($parameters)){
+            return null;
+        } else {
+            $requestStr = "";
+            foreach($parameters as $key=>$value){
+                $requestStr .= $key . "=" . $value;
+            }
+            $requestStr .= md5($access_token . $this->credentials->getConsumerSecret());
+            return md5($requestStr);
+        }
+    }
+
+    private static function isAssoc($arr){
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    public function request($path, $method = 'GET', $body = null, array $extraHeaders = array())
+    {
+        $uri = $this->baseApiUri;
+
         $token = $this->storage->retrieveAccessToken($this->service());
-        $extraParams = $token->getExtraParams();
-        $storedAppKey = isset($extraParams['application_key']) ? $extraParams['application_key'] : null;
-
-        if ( empty($body['application_key']) ) {
-            if ( $this->applicationKey ) {
-                $body['application_key'] = $this->applicationKey;
-            }
-            elseif ( $storedAppKey ) {
-                $body['application_key'] = $storedAppKey;
-            }
-            else {
-                throw new MissingApplicationKeyException('Application key not found');
-            }
-        }
-
-        if ( strpos($path, '?') ) {
-            $query = explode('?', $path);
-            $query = end($query);
-            parse_str($query, $queryParams);
-            $body += $queryParams;
-        }
+        $extraHeaders = $token->getExtraParams();
 
         if( ( $token->getEndOfLife() !== TokenInterface::EOL_NEVER_EXPIRES ) &&
             ( $token->getEndOfLife() !== TokenInterface::EOL_UNKNOWN ) &&
             ( time() > $token->getEndOfLife() ) ) {
-
-            throw new ExpiredTokenException('Token expired on ' . date('m/d/Y', $token->getEndOfLife()) . ' at ' . date('h:i:s A', $token->getEndOfLife()) );
+            throw new ExpiredTokenException(
+                'Token expired on ' . date('m/d/Y', $token->getEndOfLife()) . ' at ' . date('h:i:s A', $token->getEndOfLife())
+            );
         }
 
-        ksort($body);
+        $parameters = [
+            'application_key' => self::$app_public_key,
+            'method' => $path
+        ];
 
-        $sig = '';
-        foreach ($body as $k=>$v) {
-            $sig .= $k . '=' . $v;
+        $parameters['sig'] = $this->calcSignature($token->getAccessToken(),  $parameters);
+        $parameters[self::PARAMETER_NAME_ACCESS_TOKEN] = $token->getAccessToken();
+
+        foreach($parameters as $key=>$value){
+            $uri->addToQuery($key, urlencode($value));
         }
-        $sig = md5($sig . md5( $token->getAccessToken() . $this->credentials->getConsumerSecret() ) );
-        $body['sig'] = $sig;
-
-        $uri->addToQuery( 'access_token', $token->getAccessToken() );
-        foreach ($body as $qK => $qV) {
-            $uri->addToQuery( $qK, $qV );
-        }
-
-        $body = array();
-
-        $extraHeaders = array_merge( $this->getExtraApiHeaders(), $extraHeaders );
 
         return $this->httpClient->retrieveResponse($uri, $body, $extraHeaders, $method);
     }
