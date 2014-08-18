@@ -224,6 +224,37 @@ abstract class AbstractService extends BaseAbstractService implements ServiceInt
 	}
 
 	/**
+	 * @return TokenInterface $token | null
+	 */
+	public function getFreshToken () {
+		if ( $this->storage->hasAccessToken($this->service()) ) {
+			$token = $this->storage->retrieveAccessToken($this->service());
+
+			if ( $token->getEndOfLife() !== TokenInterface::EOL_NEVER_EXPIRES
+				&& $token->getEndOfLife() !== TokenInterface::EOL_UNKNOWN
+				&& time() > $token->getEndOfLife()
+			) {
+
+				$refresh_token = $token->getRefreshToken();
+
+				if ( ! empty($refresh_token) ) {
+					$token = $this->refreshAccessToken($token);
+				}
+				else {
+					$this->storage->clearToken($this->service());
+					$token = null;
+				}
+			}
+
+			return $token;
+
+		}
+		else {
+			return null;
+		}
+	}
+
+	/**
 	 * Return whether or not the passed scope value is valid.
      *
      * @param string $scope
