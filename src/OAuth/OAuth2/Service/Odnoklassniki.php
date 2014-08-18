@@ -142,35 +142,33 @@ class Odnoklassniki extends AbstractService
         return array_keys($arr) !== range(0, count($arr) - 1);
     }
 
-    public function request($path, $method = 'GET', $body = null, array $extraHeaders = array())
-    {
-        $uri = $this->baseApiUri;
+	public function request($path, $method = 'GET', $body = null, array $extraHeaders = array())
+	{
+		$uri = $this->baseApiUri;
 
-        $token = $this->storage->retrieveAccessToken($this->service());
-        $extraHeaders = $token->getExtraParams();
+		$token        = $this->storage->retrieveAccessToken($this->service());
+		$extraHeaders = $token->getExtraParams();
 
-        if( ( $token->getEndOfLife() !== TokenInterface::EOL_NEVER_EXPIRES ) &&
-            ( $token->getEndOfLife() !== TokenInterface::EOL_UNKNOWN ) &&
-            ( time() > $token->getEndOfLife() ) ) {
-            throw new ExpiredTokenException(
-                'Token expired on ' . date('m/d/Y', $token->getEndOfLife()) . ' at ' . date('h:i:s A', $token->getEndOfLife())
-            );
-        }
+		if ( ($token->getEndOfLife() !== TokenInterface::EOL_NEVER_EXPIRES) && ($token->getEndOfLife() !== TokenInterface::EOL_UNKNOWN) && (time() > $token->getEndOfLife()) ) {
+			throw new ExpiredTokenException('Token expired on ' . date('m/d/Y', $token->getEndOfLife()) . ' at ' . date('h:i:s A', $token->getEndOfLife()));
+		}
 
-        $parameters = [
-            'application_key' => $this->credentials->getConsumerPublic(),
-            'method' => $path
-        ];
+		$parameters['application_key'] = $this->credentials->getConsumerPublic();
 
-        $parameters['sig'] = $this->calcSignature($token->getAccessToken(),  $parameters);
-        $parameters[self::PARAMETER_NAME_ACCESS_TOKEN] = $token->getAccessToken();
+		if ( ! is_array($path) ) {
+			$path = ['method' => $path];
+		}
 
-        foreach($parameters as $key=>$value){
-            $uri->addToQuery($key, urlencode($value));
-        }
+		$parameters = array_merge($parameters, $path);
 
-        return $this->httpClient->retrieveResponse($uri, $body, $extraHeaders, $method);
-    }
+		$parameters['sig']                               = $this->calcSignature($token->getAccessToken(), $parameters);
+		$parameters[ self::PARAMETER_NAME_ACCESS_TOKEN ] = $token->getAccessToken();
 
+		foreach ($parameters as $key => $value) {
+			$uri->addToQuery($key, urlencode($value));
+		}
+
+		return $this->httpClient->retrieveResponse($uri, $body, $extraHeaders, $method);
+	}
 
 }
