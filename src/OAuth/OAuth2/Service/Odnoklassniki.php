@@ -147,7 +147,7 @@ class Odnoklassniki extends AbstractService
 		$parameters[ self::PARAMETER_NAME_ACCESS_TOKEN ] = $token->getAccessToken();
 
 		foreach ($parameters as $key => $value) {
-			$uri->addToQuery($key, urlencode($value));
+			$uri->addToQuery($key, $value);
 		}
 
 		return $this->httpClient->retrieveResponse($uri, $body, $extraHeaders, $method);
