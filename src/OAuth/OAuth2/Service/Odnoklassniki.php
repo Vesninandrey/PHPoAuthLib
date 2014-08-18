@@ -104,24 +104,6 @@ class Odnoklassniki extends AbstractService
         return self::AUTHORIZATION_METHOD_HEADER_OAUTH;
     }
 
-/* Must implement public function refreshAccessToken(TokenInterface $token)
-
-    public function updateAccessTokenWithRefreshToken(){
-        $curl = curl_init($this->getAccessTokenEndpoint());
-        curl_setopt($curl, CURLOPT_POST, true);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, 'refresh_token=' . self::$refresh_token . '&grant_type=refresh_token&client_id=' . $this->credentials->getConsumerId() . '&client_secret=' . $this->credentials->getConsumerSecret());
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        $s = curl_exec($curl);
-        curl_close($curl);
-        $a = json_decode($s, true);
-        if (empty($a[self::PARAMETER_NAME_ACCESS_TOKEN])) {
-            return false;
-        } else {
-            self::$access_token = $a[self::PARAMETER_NAME_ACCESS_TOKEN];
-            return true;
-        }
-    }
-*/
     private function calcSignature($access_token, $parameters = []){
         if (!count($parameters) && (!self::isAssoc($parameters)))
             return null;
