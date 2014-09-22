@@ -31,6 +31,10 @@ $servicesCredentials = array(
         'key'       => '',
         'secret'    => '',
     ),
+    'buffer' => array(
+        'key'       => '',
+        'secret'    => '',
+    ),
     'dailymotion' => array(
         'key'       => '',
         'secret'    => '',
@@ -111,6 +115,10 @@ $servicesCredentials = array(
         'secret'    => '',
     ),
     'twitter' => array(
+        'key'       => '',
+        'secret'    => '',
+    ),
+    'ustream' => array(
         'key'       => '',
         'secret'    => '',
     ),
