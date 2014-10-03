@@ -18,6 +18,9 @@ class Odnoklassniki extends AbstractService
     const PARAMETER_NAME_ACCESS_TOKEN = "access_token";
     const PARAMETER_NAME_REFRESH_TOKEN = "refresh_token";
 
+    const SCOPE_GROUP_CONTENT   = 'GROUP_CONTENT';
+    const SCOPE_VALUABLE_ACCESS = 'VALUABLE_ACCESS';
+
     public function __construct(Credentials $credentials, ClientInterface $httpClient, TokenStorageInterface $storage, $scopes = array(), UriInterface $baseApiUri = null)
     {
         parent::__construct($credentials, $httpClient, $storage, $scopes, $baseApiUri);
@@ -152,5 +155,35 @@ class Odnoklassniki extends AbstractService
 
 		return $this->httpClient->retrieveResponse($uri, $body, $extraHeaders, $method);
 	}
+
+    public function getAuthorizationUri(array $additionalParameters = [])
+    {
+        $parameters = array_merge(
+            $additionalParameters,
+            [
+                'type'          => 'web_server',
+                'client_id'     => $this->credentials->getConsumerId(),
+                'redirect_uri'  => $this->credentials->getCallbackUrl(),
+                'response_type' => 'code',
+            ]
+        );
+
+        $parameters['scope'] = implode(';', $this->scopes); //единственная разница с обычным методом
+
+        if ($this->needsStateParameterInAuthUrl()) {
+            if (!isset($parameters['state'])) {
+                $parameters['state'] = $this->generateAuthorizationState();
+            }
+            $this->storeAuthorizationState($parameters['state']);
+        }
+
+        // Build the url
+        $url = clone $this->getAuthorizationEndpoint();
+        foreach ($parameters as $key => $val) {
+            $url->addToQuery($key, $val);
+        }
+
+        return $url;
+    }
 
 }
