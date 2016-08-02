@@ -36,7 +36,7 @@ class Session implements TokenStorageInterface
         $sessionVariableName = 'lusitanian-oauth-token',
         $stateVariableName = 'lusitanian-oauth-state'
     ) {
-        if ($startSession && !$this->sessionHasStarted()) {
+        if ($startSession && !$this->sessionHasStarted() && php_sapi_name() !== 'cli') {
             session_start();
         }
 
