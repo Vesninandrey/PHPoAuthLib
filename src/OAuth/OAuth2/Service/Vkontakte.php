@@ -106,4 +106,14 @@ class Vkontakte extends AbstractService
     {
         return static::AUTHORIZATION_METHOD_QUERY_STRING;
     }
+
+    public function request( $path, $method = 'GET', $body = null, array $extraHeaders = [] )
+    {
+        // Default version required since 01.01.2017
+        if (!isset( $body['v'] )) {
+            $body['v'] = '5.57';
+        }
+
+        return parent::request( $path, $method, $body, $extraHeaders );
+    }
 }
