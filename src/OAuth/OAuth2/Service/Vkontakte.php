@@ -114,6 +114,10 @@ class Vkontakte extends AbstractService
             $body['v'] = '5.57';
         }
 
+        if ($method === 'GET') {
+            $path = strpos( $path, '?' ) === false ? $path . '?v=5.57' : $path . '&v=5.57';
+        }
+
         return parent::request( $path, $method, $body, $extraHeaders );
     }
 }
