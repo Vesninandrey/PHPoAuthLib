@@ -110,7 +110,7 @@ class Vkontakte extends AbstractService
     public function request( $path, $method = 'GET', $body = null, array $extraHeaders = [] )
     {
         // Default version required since 01.01.2017
-        if (!isset( $body['v'] )) {
+        if ($method === 'POST' && !isset( $body['v'] )) {
             $body['v'] = '5.57';
         }
 
